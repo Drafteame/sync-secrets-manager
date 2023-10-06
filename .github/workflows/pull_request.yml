@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Lint
+      - name: Execute tests
         run: npm run test
 
   commit_lint:

@@ -68,8 +68,8 @@ describe("ChangeSet", () => {
     const descriptions = changeSet.changeDesc();
 
     expect(descriptions).to.deep.equal([
-      "Key: key1, New Value: new-value1, Old Value: value1",
-      "Key: key2, New Value: new-value2, Old Value: value2",
+      "SecretKey: [CHANGE] 'key1': 'value1' => 'new-value1'",
+      "SecretKey: [CHANGE] 'key2': 'value2' => 'new-value2'",
     ]);
   });
 
@@ -85,6 +85,21 @@ describe("ChangeSet", () => {
 
     const descriptions = changeSet.changeDesc();
 
-    expect(descriptions).to.deep.equal(["Key: key2, Removed"]);
+    expect(descriptions).to.deep.equal(["SecretKey: [REMOVED] 'key2'"]);
+  });
+
+  it("should create descriptions for new keys", () => {
+    const newValues = { key1: "value1", key2: "value2", key3: "value3" };
+    const existingValues = { key1: "value1", key2: "value2" };
+
+    const changeSet = new ChangeSet(
+      secretsManagerStub,
+      newValues,
+      existingValues,
+    );
+
+    const descriptions = changeSet.changeDesc();
+
+    expect(descriptions).to.deep.equal(["SecretKey: [ADDED] 'key3': 'value3'"]);
   });
 });

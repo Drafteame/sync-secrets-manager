@@ -1,12 +1,21 @@
+import SecretsManager from "../secrets-manager/SecretsManager.js";
+
 /**
- * ChangeSet is a class that receives a SecretsManager instance, a new set of values and an existing set of values
- * to be compared and create a new updated set to be applied.
+ * ChangeSet is a class that represents a set of changes to be applied to secrets in AWS Secrets Manager.
+ * It tracks the changes, provides descriptions, and allows applying those changes.
  */
 export default class ChangeSet {
   #changeDesc; // Array of Change descriptions
   #updatedValues; // Final updated secrets as object
   #smClient; // SecretsManager object
 
+  /**
+   * Creates a new ChangeSet instance.
+   *
+   * @param {SecretsManager} smClient - An instance of the SecretsManager class for interacting with AWS Secrets Manager.
+   * @param {Object} newValues - The new set of values to be applied to the secrets manager.
+   * @param {Object} existingValues - The existing set of values to be replaced by the new ones.
+   */
   constructor(smClient, newValues, existingValues) {
     this.#changeDesc = [];
     this.#updatedValues = { ...existingValues };
@@ -16,27 +25,28 @@ export default class ChangeSet {
   }
 
   /**
-   * Return descriptions for the resultant change set.
+   * Returns descriptions for the resultant change set.
    *
-   * @returns {Array<string>} Array with change set descriptions.
+   * @returns {Array<string>} An array with change set descriptions.
    */
   changeDesc() {
     return this.#changeDesc;
   }
 
   /**
-   * Apply change set to update the given secrets manager.
-   * @return {Promise}
+   * Applies the change set to update the given secrets in AWS Secrets Manager.
+   *
+   * @returns {Promise} A promise that resolves when the update is completed.
    */
   async apply() {
     await this.#smClient.update(this.#updatedValues);
   }
 
   /**
-   * Evaluate the two given set of values to create an update set for latter application.
+   * Evaluates the two given sets of values to create an update set for later application.
    *
-   * @param {Object} newValues New set of values to be applied to secrets manager
-   * @param {Object} existingValues Existing set of values to be replaced by the new ones.
+   * @param {Object} newValues - The new set of values to be applied to secrets manager.
+   * @param {Object} existingValues - The existing set of values to be replaced by the new ones.
    */
   #eval(newValues, existingValues) {
     // Check for changes and update the secret (or preview changes)
@@ -45,11 +55,19 @@ export default class ChangeSet {
         continue;
       }
 
-      this.#changeDesc.push(
-        `Key: ${key}, New Value: ${newValues[key]}, Old Value: ${existingValues[key]}`,
-      );
-
       this.#updatedValues[key] = newValues[key];
+
+      if (existingValues[key] === undefined) {
+        this.#changeDesc.push(
+          `SecretKey: [ADDED] '${key}': '${newValues[key]}'`,
+        );
+
+        continue;
+      }
+
+      this.#changeDesc.push(
+        `SecretKey: [CHANGE] '${key}': '${existingValues[key]}' => '${newValues[key]}'`,
+      );
     }
 
     for (const key in existingValues) {
@@ -57,7 +75,7 @@ export default class ChangeSet {
         continue;
       }
 
-      this.#changeDesc.push(`Key: ${key}, Removed`);
+      this.#changeDesc.push(`SecretKey: [REMOVED] '${key}'`);
 
       delete this.#updatedValues[key];
     }
