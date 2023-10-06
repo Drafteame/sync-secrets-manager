@@ -1,0 +1,31 @@
+name: "Sync AWS Secrets Manager"
+description: "Sync AWS Secrets Manager with a JSON file"
+
+inputs:
+  aws_access_key_id:
+    description: "AWS Access Key ID"
+    required: true
+  aws_secret_access_key:
+    description: "AWS Secret Access Key"
+    required: true
+  aws_region:
+    description: "AWS Region"
+    required: true
+  secret_name:
+    description: "AWS Secret Name"
+    required: true
+  json_file_path:
+    description: "Path to the JSON file containing secret data"
+    required: true
+  dry_run:
+    description: "Dry run mode (preview changes without modifying the secret)"
+    required: false
+    default: "false" # Set the default value to 'false'
+
+outputs:
+  changes:
+    description: "List of changes made to the secret"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"

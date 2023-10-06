@@ -1,0 +1,47 @@
+{
+  "name": "sync-secrets-manager",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Github action that sync an AWS Secrets Manager and it's values from a provided json file",
+  "main": "index.js",
+  "scripts": {
+    "lint": "npx eslint --fix .",
+    "format": "npx prettier --write .",
+    "test": "mocha ./tests/**/*.test.js",
+    "pre-commit": "pre-commit install --hook-type commit-msg"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Drafteame/sync-secrets-manager.git"
+  },
+  "keywords": [
+    "github",
+    "action",
+    "aws",
+    "secrets-manager",
+    "sync"
+  ],
+  "author": "Eduardo Aguilar <dante.aguilar@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Drafteame/sync-secrets-manager/issues"
+  },
+  "homepage": "https://github.com/Drafteame/sync-secrets-manager#readme",
+  "devDependencies": {
+    "chai": "^4.3.10",
+    "eslint": "^8.50.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.28.1",
+    "eslint-plugin-prettier": "^5.0.0",
+    "mocha": "^10.2.0",
+    "prettier": "^3.0.3",
+    "sinon": "^16.1.0"
+  },
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@aws-sdk/client-secrets-manager": "^3.425.0",
+    "fs": "^0.0.1-security",
+    "lodash": "^4.17.21"
+  }
+}
