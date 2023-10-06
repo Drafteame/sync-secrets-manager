@@ -1,6 +1,10 @@
 name: "Sync AWS Secrets Manager"
 description: "Sync AWS Secrets Manager with a JSON file"
 
+branding:
+  icon: database
+  color: blue
+
 inputs:
   aws_access_key_id:
     description: "AWS Access Key ID"
