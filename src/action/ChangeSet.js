@@ -1,3 +1,5 @@
+import core from "@actions/core";
+
 import SecretsManager from "../secrets-manager/SecretsManager.js";
 
 /**
@@ -120,6 +122,7 @@ export default class ChangeSet {
       let exp = new RegExp(regexp);
 
       if (exp.test(key)) {
+        core.debug(`Skipping ${key} with regexp '${regexp}'`);
         return true;
       }
     }
