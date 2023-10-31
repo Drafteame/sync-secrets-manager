@@ -5,9 +5,29 @@ import SecretsManager from "../secrets-manager/SecretsManager.js";
  * It tracks the changes, provides descriptions, and allows applying those changes.
  */
 export default class ChangeSet {
-  #changeDesc; // Array of Change descriptions
-  #updatedValues; // Final updated secrets as object
-  #smClient; // SecretsManager object
+  /**
+   * Array of change descriptions
+   * @type {Array<string>}
+   */
+  #changeDesc;
+
+  /**
+   * Final updated secrets as object
+   * @type {Object}
+   */
+  #updatedValues;
+
+  /**
+   * Secrets Manager client instance
+   * @type {SecretsManager}
+   */
+  #smClient;
+
+  /**
+   * A list of regular expressions to exclude keys
+   * @type {Array<string>}
+   */
+  #skipPatterns;
 
   /**
    * Creates a new ChangeSet instance.
@@ -15,11 +35,13 @@ export default class ChangeSet {
    * @param {SecretsManager} smClient - An instance of the SecretsManager class for interacting with AWS Secrets Manager.
    * @param {Object} newValues - The new set of values to be applied to the secrets manager.
    * @param {Object} existingValues - The existing set of values to be replaced by the new ones.
+   * @param {Array<string>} skipPatterns - A list of regular expressions to skip keys.
    */
-  constructor(smClient, newValues, existingValues) {
+  constructor(smClient, newValues, existingValues, skipPatterns) {
     this.#changeDesc = [];
     this.#updatedValues = { ...existingValues };
     this.#smClient = smClient;
+    this.#skipPatterns = skipPatterns || [];
 
     this.#eval(newValues, existingValues);
   }
@@ -51,6 +73,11 @@ export default class ChangeSet {
   #eval(newValues, existingValues) {
     // Check for changes and update the secret (or preview changes)
     for (const key in newValues) {
+      if (this.#shouldSkip(key)) {
+        this.#changeDesc.push(`SecretKey: [SKIP] '${key}'`);
+        continue;
+      }
+
       if (existingValues[key] === newValues[key]) {
         continue;
       }
@@ -79,5 +106,24 @@ export default class ChangeSet {
 
       delete this.#updatedValues[key];
     }
+  }
+
+  /**
+   * Evaluate if the given key should skip the sync process by testing against the skip patterns.
+   *
+   * @param {string} key Single secret key to evaluate if it should be skipped.
+   *
+   * @returns {boolean}
+   */
+  #shouldSkip(key) {
+    for (let regexp of this.#skipPatterns) {
+      let exp = new RegExp(regexp);
+
+      if (exp.test(key)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

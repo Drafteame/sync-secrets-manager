@@ -1,7 +1,10 @@
 import fs from "fs";
+import lodash from "lodash";
 
 import SecretsManager from "../secrets-manager/SecretsManager.js";
 import ChangeSet from "./ChangeSet.js";
+
+const skipPatterns = ["^_"];
 
 /**
  * Action is a class representing an action to synchronize secrets with AWS Secrets Manager.
@@ -16,15 +19,42 @@ export default class Action {
    * @param {string} region - The AWS region.
    * @param {string} secretName - The name of the secret in AWS Secrets Manager.
    * @param {string} jsonFile - The path to the JSON file containing the new secret values.
+   * @param {Array<string>} skipPatterns - A list of regular expressions that eval keys of the json file and if match,
+   *        that key should be omitted
    *
    * @throws {Error} Throws an error if any required parameter is missing or if the JSON file doesn't exist.
    */
-  constructor(keyId, secretKey, region, secretName, jsonFile) {
-    this.validateData(keyId, secretKey, region, secretName, jsonFile);
+  constructor(
+    keyId,
+    secretKey,
+    region,
+    secretName,
+    jsonFile,
+    skipPatterns = [],
+  ) {
+    this.#validateData(keyId, secretKey, region, secretName, jsonFile);
 
     this.jsonFile = jsonFile;
+    this.skipPatterns = this.#getSkipPatterns(skipPatterns);
 
     this.smClient = new SecretsManager(keyId, secretKey, region, secretName);
+  }
+
+  /**
+   * Runs the action to synchronize secrets by fetching existing secrets and creating a change set.
+   *
+   * @returns {Promise<ChangeSet>} A promise that resolves to a ChangeSet instance representing the changes to be applied.
+   */
+  async run() {
+    const existingSecretData = await this.smClient.getValues();
+    const newSecretData = JSON.parse(fs.readFileSync(this.jsonFile, "utf8"));
+
+    return new ChangeSet(
+      this.smClient,
+      newSecretData,
+      existingSecretData,
+      this.skipPatterns,
+    );
   }
 
   /**
@@ -38,7 +68,7 @@ export default class Action {
    *
    * @throws {Error} Throws an error if any required parameter is missing or if the JSON file doesn't exist.
    */
-  validateData(keyId, secretKey, region, secretName, jsonFile) {
+  #validateData(keyId, secretKey, region, secretName, jsonFile) {
     if (!keyId) {
       throw new Error("Missing aws_access_key_id");
     }
@@ -65,15 +95,11 @@ export default class Action {
     }
   }
 
-  /**
-   * Runs the action to synchronize secrets by fetching existing secrets and creating a change set.
-   *
-   * @returns {Promise<ChangeSet>} A promise that resolves to a ChangeSet instance representing the changes to be applied.
-   */
-  async run() {
-    const existingSecretData = await this.smClient.getValues();
-    const newSecretData = JSON.parse(fs.readFileSync(this.jsonFile, "utf8"));
+  #getSkipPatterns(skip) {
+    if (lodash.isArray(skip) && skip.length > 0) {
+      return skipPatterns.concat(skip);
+    }
 
-    return new ChangeSet(this.smClient, newSecretData, existingSecretData);
+    return skipPatterns;
   }
 }

@@ -102,4 +102,28 @@ describe("ChangeSet", () => {
 
     expect(descriptions).to.deep.equal(["SecretKey: [ADDED] 'key3': 'value3'"]);
   });
+
+  it("should exclude keys from patterns", () => {
+    const newValues = {
+      _excluded: "some",
+      key1: "value1",
+      key2: "value2",
+      key3: "value3",
+    };
+    const existingValues = { key1: "value1", key2: "value2" };
+
+    const changeSet = new ChangeSet(
+      secretsManagerStub,
+      newValues,
+      existingValues,
+      ["^_"],
+    );
+
+    const descriptions = changeSet.changeDesc();
+
+    expect(descriptions).to.deep.equal([
+      "SecretKey: [SKIP] '_excluded'",
+      "SecretKey: [ADDED] 'key3': 'value3'",
+    ]);
+  });
 });

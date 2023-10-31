@@ -24,7 +24,10 @@ inputs:
   dry_run:
     description: "Dry run mode (preview changes without modifying the secret)"
     required: false
-    default: "false" # Set the default value to 'false'
+    default: "false"
+  exclude:
+    description: "List of regular expressions that determines if a secret key should be excluded from sync"
+    required: false
 
 outputs:
   changes:
