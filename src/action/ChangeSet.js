@@ -1,4 +1,5 @@
 import core from "@actions/core";
+import lodash from "lodash";
 
 import SecretsManager from "../secrets-manager/SecretsManager.js";
 
@@ -119,6 +120,10 @@ export default class ChangeSet {
    */
   #shouldSkip(key) {
     for (let regexp of this.#skipPatterns) {
+      if (lodash.isEmpty(regexp)) {
+        continue;
+      }
+
       let exp = new RegExp(regexp);
 
       if (exp.test(key)) {
