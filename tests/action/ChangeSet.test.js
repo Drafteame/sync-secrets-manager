@@ -68,8 +68,8 @@ describe("ChangeSet", () => {
     const descriptions = changeSet.changeDesc();
 
     expect(descriptions).to.deep.equal([
-      "SecretKey: [CHANGE] 'key1': 'value1' => 'new-value1'",
-      "SecretKey: [CHANGE] 'key2': 'value2' => 'new-value2'",
+      "SecretKey: [CHANGED] 'key1': 'value1' => 'new-value1'",
+      "SecretKey: [CHANGED] 'key2': 'value2' => 'new-value2'",
     ]);
   });
 

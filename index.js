@@ -2,15 +2,13 @@ import core from "@actions/core";
 import Action from "./src/action/Action.js";
 
 const getAction = () => {
-  const exclude = core.getInput("exclude").split(",");
-
   return new Action(
     core.getInput("aws_access_key_id"),
     core.getInput("aws_secret_access_key"),
     core.getInput("aws_region"),
     core.getInput("secret_name"),
     core.getInput("json_file_path"),
-    exclude,
+    core.getInput("exclude"),
   );
 };
 

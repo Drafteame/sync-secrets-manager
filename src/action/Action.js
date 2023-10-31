@@ -4,7 +4,7 @@ import lodash from "lodash";
 import SecretsManager from "../secrets-manager/SecretsManager.js";
 import ChangeSet from "./ChangeSet.js";
 
-const skipPatterns = ["^_"];
+const defaultSkipPattern = "^_";
 
 /**
  * Action is a class representing an action to synchronize secrets with AWS Secrets Manager.
@@ -19,23 +19,16 @@ export default class Action {
    * @param {string} region - The AWS region.
    * @param {string} secretName - The name of the secret in AWS Secrets Manager.
    * @param {string} jsonFile - The path to the JSON file containing the new secret values.
-   * @param {Array<string>} skipPatterns - A list of regular expressions that eval keys of the json file and if match,
+   * @param {string} skipPattern - A list of regular expressions that eval keys of the json file and if match,
    *        that key should be omitted
    *
    * @throws {Error} Throws an error if any required parameter is missing or if the JSON file doesn't exist.
    */
-  constructor(
-    keyId,
-    secretKey,
-    region,
-    secretName,
-    jsonFile,
-    skipPatterns = [],
-  ) {
+  constructor(keyId, secretKey, region, secretName, jsonFile, skipPattern) {
     this.#validateData(keyId, secretKey, region, secretName, jsonFile);
 
     this.jsonFile = jsonFile;
-    this.skipPatterns = this.#getSkipPatterns(skipPatterns);
+    this.skipPattern = skipPattern || defaultSkipPattern;
 
     this.smClient = new SecretsManager(keyId, secretKey, region, secretName);
   }
@@ -53,7 +46,7 @@ export default class Action {
       this.smClient,
       newSecretData,
       existingSecretData,
-      this.skipPatterns,
+      this.skipPattern,
     );
   }
 
@@ -93,13 +86,5 @@ export default class Action {
     if (!fs.existsSync(jsonFile)) {
       throw new Error(`JSON file does not exist at path: ${jsonFile}`);
     }
-  }
-
-  #getSkipPatterns(skip) {
-    if (lodash.isArray(skip) && skip.length > 0) {
-      return skipPatterns.concat(skip);
-    }
-
-    return skipPatterns;
   }
 }

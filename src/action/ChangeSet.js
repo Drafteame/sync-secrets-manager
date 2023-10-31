@@ -1,7 +1,14 @@
 import core from "@actions/core";
 import lodash from "lodash";
+import chalk from "chalk";
 
 import SecretsManager from "../secrets-manager/SecretsManager.js";
+
+const logPrefix = chalk.cyan("SecretKey");
+const skipTag = chalk.yellow("[SKIP]");
+const addedTag = chalk.green("[ADDED]");
+const changedTag = chalk.magenta("[CHANGED]");
+const removedTag = chalk.red("[REMOVED]");
 
 /**
  * ChangeSet is a class that represents a set of changes to be applied to secrets in AWS Secrets Manager.
@@ -27,10 +34,10 @@ export default class ChangeSet {
   #smClient;
 
   /**
-   * A list of regular expressions to exclude keys
-   * @type {Array<string>}
+   * A regular expression to exclude keys
+   * @type {string}
    */
-  #skipPatterns;
+  #skipPattern;
 
   /**
    * Creates a new ChangeSet instance.
@@ -38,13 +45,13 @@ export default class ChangeSet {
    * @param {SecretsManager} smClient - An instance of the SecretsManager class for interacting with AWS Secrets Manager.
    * @param {Object} newValues - The new set of values to be applied to the secrets manager.
    * @param {Object} existingValues - The existing set of values to be replaced by the new ones.
-   * @param {Array<string>} skipPatterns - A list of regular expressions to skip keys.
+   * @param {string} skipPattern - A regular expression to skip keys.
    */
-  constructor(smClient, newValues, existingValues, skipPatterns) {
+  constructor(smClient, newValues, existingValues, skipPattern) {
     this.#changeDesc = [];
     this.#updatedValues = { ...existingValues };
     this.#smClient = smClient;
-    this.#skipPatterns = skipPatterns || [];
+    this.#skipPattern = skipPattern || "";
 
     this.#eval(newValues, existingValues);
   }
@@ -77,7 +84,7 @@ export default class ChangeSet {
     // Check for changes and update the secret (or preview changes)
     for (const key in newValues) {
       if (this.#shouldSkip(key)) {
-        this.#changeDesc.push(`SecretKey: [SKIP] '${key}'`);
+        this.#skipDesc(key);
         continue;
       }
 
@@ -88,16 +95,11 @@ export default class ChangeSet {
       this.#updatedValues[key] = newValues[key];
 
       if (existingValues[key] === undefined) {
-        this.#changeDesc.push(
-          `SecretKey: [ADDED] '${key}': '${newValues[key]}'`,
-        );
-
+        this.#addedDesc(key, newValues[key]);
         continue;
       }
 
-      this.#changeDesc.push(
-        `SecretKey: [CHANGE] '${key}': '${existingValues[key]}' => '${newValues[key]}'`,
-      );
+      this.#changedDesc(key, existingValues[key], newValues[key]);
     }
 
     for (const key in existingValues) {
@@ -105,7 +107,7 @@ export default class ChangeSet {
         continue;
       }
 
-      this.#changeDesc.push(`SecretKey: [REMOVED] '${key}'`);
+      this.#removedDesc(key);
 
       delete this.#updatedValues[key];
     }
@@ -119,19 +121,58 @@ export default class ChangeSet {
    * @returns {boolean}
    */
   #shouldSkip(key) {
-    for (let regexp of this.#skipPatterns) {
-      if (lodash.isEmpty(regexp)) {
-        continue;
-      }
+    if (lodash.isEmpty(this.#skipPattern)) {
+      return false;
+    }
 
-      let exp = new RegExp(regexp);
+    let exp = new RegExp(this.#skipPattern);
 
-      if (exp.test(key)) {
-        core.debug(`Skipping ${key} with regexp '${regexp}'`);
-        return true;
-      }
+    if (exp.test(key)) {
+      core.debug(`Skipping ${key} with regexp '${this.#skipPattern}'`);
+      return true;
     }
 
     return false;
+  }
+
+  /**
+   * Create a skip message description and append to changeDesc array
+   *
+   * @param {string} key Name of the key
+   */
+  #skipDesc(key) {
+    this.#changeDesc.push(`${logPrefix}: ${skipTag} '${key}'`);
+  }
+
+  /**
+   * Create a skip message description and append to changeDesc array
+   *
+   * @param {string} key Name of the key
+   */
+  #removedDesc(key) {
+    this.#changeDesc.push(`${logPrefix}: ${removedTag} '${key}'`);
+  }
+
+  /**
+   * Create an added message description and append to changeDesc array
+   *
+   * @param {string} key Name of the key
+   * @param {string} val Value that is set to the key
+   */
+  #addedDesc(key, val) {
+    this.#changeDesc.push(`${logPrefix}: ${addedTag} '${key}': '${val}'`);
+  }
+
+  /**
+   * Create a changed message description and append to changeDesc array
+   *
+   * @param {string} key Name of the key
+   * @param {string} oldVal Las secret value before sync
+   * @param {string} newVal New secret value after sync
+   */
+  #changedDesc(key, oldVal, newVal) {
+    this.#changeDesc.push(
+      `${logPrefix}: ${changedTag} '${key}': '${oldVal}' => '${newVal}'`,
+    );
   }
 }
