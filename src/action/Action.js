@@ -11,6 +11,30 @@ const defaultSkipPattern = "^_";
  */
 export default class Action {
   /**
+   * Path to json file
+   * @type {string}
+   */
+  #jsonFile;
+
+  /**
+   * Regexp to that evaluates if a kip should skip the sync process
+   * @type {string}
+   */
+  #skipPattern;
+
+  /**
+   * Flag to hide or not secret values on logs
+   * @type {boolean}
+   */
+  #showValues;
+
+  /**
+   * Secrets Manager client instance
+   * @type {SecretsManager}
+   */
+  #smClient;
+
+  /**
    * Creates a new Action instance.
    *
    * @param {string} keyId The AWS access key ID.
@@ -36,11 +60,20 @@ export default class Action {
   ) {
     this.#validateData(keyId, secretKey, region, secretName, jsonFile);
 
-    this.jsonFile = jsonFile;
-    this.skipPattern = skipPattern || defaultSkipPattern;
-    this.showValues = showValues;
+    this.#jsonFile = jsonFile;
+    this.#skipPattern = skipPattern || defaultSkipPattern;
+    this.#showValues = showValues;
 
-    this.smClient = new SecretsManager(keyId, secretKey, region, secretName);
+    this.#smClient = new SecretsManager(keyId, secretKey, region, secretName);
+  }
+
+  /**
+   * Set the secrets manager client
+   *
+   * @param {SecretsManager} client Instance of a secrets manager object
+   */
+  setSmClient(client) {
+    this.#smClient = client;
   }
 
   /**
@@ -49,15 +82,15 @@ export default class Action {
    * @returns {Promise<ChangeSet>} A promise that resolves to a ChangeSet instance representing the changes to be applied.
    */
   async run() {
-    const existingSecretData = await this.smClient.getValues();
-    const newSecretData = JSON.parse(fs.readFileSync(this.jsonFile, "utf8"));
+    const existingSecretData = await this.#smClient.getValues();
+    const newSecretData = JSON.parse(fs.readFileSync(this.#jsonFile, "utf8"));
 
     return new ChangeSet(
-      this.smClient,
+      this.#smClient,
       newSecretData,
       existingSecretData,
-      this.skipPattern,
-      this.showValues,
+      this.#skipPattern,
+      this.#showValues,
     );
   }
 
