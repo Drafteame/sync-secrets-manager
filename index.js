@@ -9,12 +9,13 @@ const getAction = () => {
     core.getInput("secret_name"),
     core.getInput("json_file_path"),
     core.getInput("exclude"),
+    core.getBooleanInput("show_values"),
   );
 };
 
 const run = async () => {
   try {
-    const dryRun = core.getInput("dry_run") === "true";
+    const dryRun = core.getBooleanInput("dry_run");
 
     const changeSet = await getAction().run();
 

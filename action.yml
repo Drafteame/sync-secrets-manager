@@ -25,6 +25,10 @@ inputs:
     description: "Dry run mode (preview changes without modifying the secret)"
     required: false
     default: "false"
+  show_values:
+    description: "Dry run mode (preview changes without modifying the secret)"
+    required: false
+    default: "false"
   exclude:
     description: "List of regular expressions that determines if a secret key should be excluded from sync"
     required: false

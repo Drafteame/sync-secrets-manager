@@ -1,4 +1,3 @@
-import core from "@actions/core";
 import lodash from "lodash";
 import chalk from "chalk";
 
@@ -9,6 +8,7 @@ const skipTag = chalk.yellow("[SKIP]");
 const addedTag = chalk.green("[ADDED]");
 const changedTag = chalk.magenta("[CHANGED]");
 const removedTag = chalk.red("[REMOVED]");
+const valPlaceholder = "**********";
 
 /**
  * ChangeSet is a class that represents a set of changes to be applied to secrets in AWS Secrets Manager.
@@ -40,18 +40,32 @@ export default class ChangeSet {
   #skipPattern;
 
   /**
+   * A flag to unhide secret values on log messages
+   * @type {boolean}
+   */
+  #showValues;
+
+  /**
    * Creates a new ChangeSet instance.
    *
-   * @param {SecretsManager} smClient - An instance of the SecretsManager class for interacting with AWS Secrets Manager.
-   * @param {Object} newValues - The new set of values to be applied to the secrets manager.
-   * @param {Object} existingValues - The existing set of values to be replaced by the new ones.
-   * @param {string} skipPattern - A regular expression to skip keys.
+   * @param {SecretsManager} smClient An instance of the SecretsManager class for interacting with AWS Secrets Manager.
+   * @param {Object} newValues The new set of values to be applied to the secrets manager.
+   * @param {Object} existingValues The existing set of values to be replaced by the new ones.
+   * @param {string} skipPattern A regular expression to skip keys.
+   * @param {boolean} showValues A flag to unhide secret values on log messages
    */
-  constructor(smClient, newValues, existingValues, skipPattern) {
+  constructor(
+    smClient,
+    newValues,
+    existingValues,
+    skipPattern,
+    showValues = false,
+  ) {
     this.#changeDesc = [];
     this.#updatedValues = { ...existingValues };
     this.#smClient = smClient;
     this.#skipPattern = skipPattern || "";
+    this.#showValues = showValues;
 
     this.#eval(newValues, existingValues);
   }
@@ -128,7 +142,6 @@ export default class ChangeSet {
     let exp = new RegExp(this.#skipPattern);
 
     if (exp.test(key)) {
-      core.debug(`Skipping ${key} with regexp '${this.#skipPattern}'`);
       return true;
     }
 
@@ -160,6 +173,10 @@ export default class ChangeSet {
    * @param {string} val Value that is set to the key
    */
   #addedDesc(key, val) {
+    if (!this.#showValues) {
+      val = valPlaceholder;
+    }
+
     this.#changeDesc.push(`${logPrefix}: ${addedTag} '${key}': '${val}'`);
   }
 
@@ -171,6 +188,11 @@ export default class ChangeSet {
    * @param {string} newVal New secret value after sync
    */
   #changedDesc(key, oldVal, newVal) {
+    if (!this.#showValues) {
+      oldVal = valPlaceholder;
+      newVal = valPlaceholder;
+    }
+
     this.#changeDesc.push(
       `${logPrefix}: ${changedTag} '${key}': '${oldVal}' => '${newVal}'`,
     );
