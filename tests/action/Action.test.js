@@ -27,7 +27,7 @@ describe("Action", () => {
       "path/to/json/file.json",
     );
 
-    action.smClient = secretsManagerStub;
+    action.setSmClient(secretsManagerStub);
   });
 
   afterEach(() => {
