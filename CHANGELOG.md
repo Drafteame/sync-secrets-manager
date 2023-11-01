@@ -1,3 +1,18 @@
+## v0.2.0 (2023-11-01)
+
+
+- feat: makeing prive all action properties (#5)
+- Chore/add exclude flag (#4)
+- * chore: add exclude option to skip sync keys
+
+* chore: save
+
+* chore: save
+
+* chore: add colors to log messages
+
+* chore: add configuration to show or hide secret values
+
 ## v0.1.1 (2023-10-06)
 
 
