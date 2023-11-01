@@ -29,4 +29,6 @@ jobs:
           secret_name: <secret-name>
           json_file_path: path/to/json/secrets.json
           dry_run: true # Default false
+          show_values: false # If true secret values will be displayed on action logs (default false)
+          exclude: '^_' # Regular expression that excludes the matching keys to be synced (default '^_')
 ```

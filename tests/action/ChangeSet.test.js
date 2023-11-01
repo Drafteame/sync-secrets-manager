@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import { expect, should } from "chai";
 import sinon from "sinon";
 
 import ChangeSet from "../../src/action/ChangeSet.js";
@@ -68,8 +68,8 @@ describe("ChangeSet", () => {
     const descriptions = changeSet.changeDesc();
 
     expect(descriptions).to.deep.equal([
-      "SecretKey: [CHANGE] 'key1': 'value1' => 'new-value1'",
-      "SecretKey: [CHANGE] 'key2': 'value2' => 'new-value2'",
+      "SecretKey: [CHANGED] 'key1': '**********' => '**********'",
+      "SecretKey: [CHANGED] 'key2': '**********' => '**********'",
     ]);
   });
 
@@ -100,6 +100,57 @@ describe("ChangeSet", () => {
 
     const descriptions = changeSet.changeDesc();
 
-    expect(descriptions).to.deep.equal(["SecretKey: [ADDED] 'key3': 'value3'"]);
+    expect(descriptions).to.deep.equal([
+      "SecretKey: [ADDED] 'key3': '**********'",
+    ]);
+  });
+
+  it("should exclude keys from patterns", () => {
+    const newValues = {
+      _excluded: "some",
+      key1: "value1",
+      key2: "value2",
+      key3: "value3",
+    };
+    const existingValues = { key1: "value1", key2: "value2" };
+
+    const changeSet = new ChangeSet(
+      secretsManagerStub,
+      newValues,
+      existingValues,
+      ["^_"],
+    );
+
+    const descriptions = changeSet.changeDesc();
+
+    expect(descriptions).to.deep.equal([
+      "SecretKey: [SKIP] '_excluded'",
+      "SecretKey: [ADDED] 'key3': '**********'",
+    ]);
+  });
+
+  it("should show real values on logs", () => {
+    const newValues = {
+      _excluded: "some",
+      key1: "value1",
+      key2: "value2",
+      key3: "value3",
+    };
+    const existingValues = { key1: "value1", key2: "value2" };
+
+    const changeSet = new ChangeSet(
+      secretsManagerStub,
+      newValues,
+      existingValues,
+      ["^_"],
+      true,
+    );
+
+    const descriptions = changeSet.changeDesc();
+
+    expect(descriptions).to.deep.equal([
+      "SecretKey: [SKIP] '_excluded'",
+      "SecretKey: [ADDED] 'key3': 'value3'",
+    ]);
   });
 });
