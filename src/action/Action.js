@@ -35,6 +35,12 @@ export default class Action {
   #smClient;
 
   /**
+   * Flag to create the secret before sync if not exists
+   * @type {boolean}
+   */
+  #createSecretFlag;
+
+  /**
    * Creates a new Action instance.
    *
    * @param {string} keyId The AWS access key ID.
@@ -44,8 +50,9 @@ export default class Action {
    * @param {string} jsonFile The path to the JSON file containing the new secret values.
    * @param {string} skipPattern A regular expression that eval keys of the json file and if match,
    *        that key should be omitted
-   * @param {string} showValues If this flag is set to true all secret values will be displayed on logs,
+   * @param {boolean} showValues If this flag is set to true all secret values will be displayed on logs,
    *        if false, a place holder will be displayed.
+   * @param {boolean} createSecretFlag Flag to create the secret before sync if not exists
    *
    * @throws {Error} Throws an error if any required parameter is missing or if the JSON file doesn't exist.
    */
@@ -57,12 +64,14 @@ export default class Action {
     jsonFile,
     skipPattern,
     showValues = false,
+    createSecret = false,
   ) {
     this.#validateData(keyId, secretKey, region, secretName, jsonFile);
 
     this.#jsonFile = jsonFile;
     this.#skipPattern = skipPattern || defaultSkipPattern;
     this.#showValues = showValues;
+    this.#createSecretFlag = createSecret;
 
     this.#smClient = new SecretsManager(keyId, secretKey, region, secretName);
   }
@@ -77,11 +86,22 @@ export default class Action {
   }
 
   /**
+   * Set the flag value after constructor.
+   *
+   * @param {boolean} flag value of the flag
+   */
+  setCreateSecretFlag(flag) {
+    this.#createSecretFlag = flag;
+  }
+
+  /**
    * Runs the action to synchronize secrets by fetching existing secrets and creating a change set.
    *
    * @returns {Promise<ChangeSet>} A promise that resolves to a ChangeSet instance representing the changes to be applied.
    */
   async run() {
+    await this.#createSecret();
+
     const existingSecretData = await this.#smClient.getValues();
     const newSecretData = JSON.parse(fs.readFileSync(this.#jsonFile, "utf8"));
 
@@ -92,6 +112,21 @@ export default class Action {
       this.#skipPattern,
       this.#showValues,
     );
+  }
+
+  /**
+   * Execute secret creation if needed
+   */
+  async #createSecret() {
+    if (!this.#createSecretFlag) {
+      return;
+    }
+
+    if (await this.#smClient.exists()) {
+      return;
+    }
+
+    await this.#smClient.create();
   }
 
   /**

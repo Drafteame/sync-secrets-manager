@@ -8,6 +8,8 @@ Github action that sync an AWS Secrets Manager and it's values from a provided j
 
 - `secretsmanager:UpdateSecret`
 - `secretsmanager:GetSecretValue`
+- `secretsmanager:ListSecrets`
+- `secretsmanager:CreateSecret`
 
 ### Configuration
 
@@ -28,6 +30,7 @@ jobs:
           aws_region: <region>
           secret_name: <secret-name>
           json_file_path: path/to/json/secrets.json
+          create_secret: false # If true it will check if the secret exists or not to create it before execute sync (default false)
           dry_run: true # Default false
           show_values: false # If true secret values will be displayed on action logs (default false)
           exclude: '^_' # Regular expression that excludes the matching keys to be synced (default '^_')

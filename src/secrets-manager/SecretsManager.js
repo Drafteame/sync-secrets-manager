@@ -2,6 +2,8 @@ import {
   SecretsManagerClient,
   GetSecretValueCommand,
   UpdateSecretCommand,
+  CreateSecretCommand,
+  ListSecretsCommand,
 } from "@aws-sdk/client-secrets-manager";
 
 import lodash from "lodash";
@@ -53,5 +55,41 @@ export default class SecretsManager {
 
     const updateSecretCommand = new UpdateSecretCommand(updateSecretParams);
     await this.client.send(updateSecretCommand);
+  }
+
+  /**
+   * Assert if the given secrets name exists.
+   *
+   * @returns {boolean}
+   */
+  async exists() {
+    const listCommand = new ListSecretsCommand({
+      Filters: [
+        {
+          Key: "name",
+          Values: [this.secretName],
+        },
+      ],
+    });
+
+    const res = await this.client.send(listCommand);
+
+    if (res.SecretList.length > 0) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Create the given secret name with a default value
+   */
+  async create() {
+    const createCommand = new CreateSecretCommand({
+      Name: this.secretName,
+      SecretString: JSON.stringify({ generated: true }),
+    });
+
+    await this.client.send(createCommand);
   }
 }
