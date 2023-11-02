@@ -1,3 +1,8 @@
+## v0.3.0 (2023-11-02)
+
+
+- feat: add secret creation flag and flow (#6)
+
 ## v0.2.0 (2023-11-01)
 
 
