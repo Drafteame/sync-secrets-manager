@@ -21,6 +21,10 @@ inputs:
   json_file_path:
     description: "Path to the JSON file containing secret data"
     required: true
+  create_secret:
+    description: "Flag to create the given secret if not exist before execute sync"
+    required: false
+    default: "false"
   dry_run:
     description: "Dry run mode (preview changes without modifying the secret)"
     required: false
@@ -32,10 +36,6 @@ inputs:
   exclude:
     description: "List of regular expressions that determines if a secret key should be excluded from sync"
     required: false
-
-outputs:
-  changes:
-    description: "List of changes made to the secret"
 
 runs:
   using: "docker"

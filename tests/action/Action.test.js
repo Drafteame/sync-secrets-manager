@@ -132,4 +132,48 @@ describe("Action", () => {
     // Clean up the fs.readFileSync stub
     fs.readFileSync.restore();
   });
+
+  it("should create secret if not exists with flag create_secret", async () => {
+    const existingSecretData = { generated: true };
+    const newSecretData = { key1: "new-value1", key2: "new-value2" };
+
+    action.setCreateSecretFlag(true);
+
+    secretsManagerStub.exists.resolves(false);
+    secretsManagerStub.create.resolves();
+    secretsManagerStub.getValues.resolves(existingSecretData);
+
+    sinon.stub(fs, "readFileSync").returns(JSON.stringify(newSecretData));
+
+    const changeSet = await action.run();
+
+    expect(changeSet).to.be.an.instanceOf(ChangeSet);
+    expect(secretsManagerStub.exists.calledOnce).to.be.true;
+    expect(secretsManagerStub.create.calledOnce).to.be.true;
+    expect(secretsManagerStub.getValues.calledOnce).to.be.true;
+    expect(fs.readFileSync.calledOnce).to.be.true;
+
+    fs.readFileSync.restore();
+  });
+
+  it("should omit secret creation if exists with flag create_secret", async () => {
+    const existingSecretData = { key1: "value1", key2: "value2" };
+    const newSecretData = { key1: "new-value1", key2: "new-value2" };
+
+    action.setCreateSecretFlag(true);
+
+    secretsManagerStub.exists.resolves(true);
+    secretsManagerStub.getValues.resolves(existingSecretData);
+
+    sinon.stub(fs, "readFileSync").returns(JSON.stringify(newSecretData));
+
+    const changeSet = await action.run();
+
+    expect(changeSet).to.be.an.instanceOf(ChangeSet);
+    expect(secretsManagerStub.exists.calledOnce).to.be.true;
+    expect(secretsManagerStub.getValues.calledOnce).to.be.true;
+    expect(fs.readFileSync.calledOnce).to.be.true;
+
+    fs.readFileSync.restore();
+  });
 });

@@ -10,6 +10,7 @@ const getAction = () => {
     core.getInput("json_file_path"),
     core.getInput("exclude"),
     core.getBooleanInput("show_values"),
+    core.getBooleanInput("create_secret"),
   );
 };
 
