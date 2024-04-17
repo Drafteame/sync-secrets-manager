@@ -1,3 +1,13 @@
+## v0.4.0 (2024-04-17)
+
+
+- feat: add build and publish in registry in relaese job (#7)
+- * feat: add build and publish in registry in relaese job
+
+* feat: add default inputs values for booleans
+
+* feat: remove workflow_dispatch added for testing
+
 ## v0.3.0 (2023-11-02)
 
 
