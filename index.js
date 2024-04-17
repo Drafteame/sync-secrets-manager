@@ -16,6 +16,10 @@ const getAction = () => {
 
 const run = async () => {
   try {
+    setDefault("dry_run", "false");
+    setDefault("show_values", "false");
+    setDefault("create_secret", "false");
+
     const dryRun = core.getBooleanInput("dry_run");
 
     const changeSet = await getAction().run();
@@ -32,5 +36,13 @@ const run = async () => {
     core.setFailed(error.message);
   }
 };
+
+const setDefault = (name, value) => {
+  const envVarName = `INPUT_${name.replace(/ /g, '_').toUpperCase()}`;
+  const val = process.env[envVarName] || '';
+  if (val === '') {
+    process.env[envVarName] = value;
+  }
+}
 
 run();
