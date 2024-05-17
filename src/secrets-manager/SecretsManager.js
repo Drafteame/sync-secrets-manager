@@ -74,11 +74,19 @@ export default class SecretsManager {
 
     const res = await this.client.send(listCommand);
 
-    if (res.SecretList.length > 0) {
-      return true;
+    if (res.SecretList.length == 0) {
+      return false;
     }
 
-    return false;
+    let exists = false;
+
+    res.SecretList.forEach((secret) => {
+      if (secret.Name === this.secretName) {
+        exists = true;
+      }
+    });
+
+    return exists;
   }
 
   /**
