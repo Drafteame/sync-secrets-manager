@@ -24,15 +24,12 @@ inputs:
   create_secret:
     description: "Flag to create the given secret if not exist before execute sync"
     required: false
-    default: "false"
   dry_run:
     description: "Dry run mode (preview changes without modifying the secret)"
     required: false
-    default: "false"
   show_values:
     description: "Dry run mode (preview changes without modifying the secret)"
     required: false
-    default: "false"
   exclude:
     description: "List of regular expressions that determines if a secret key should be excluded from sync"
     required: false

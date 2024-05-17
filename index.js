@@ -1,26 +1,22 @@
-import core from "@actions/core";
+import { getInput, getBooleanInput } from "./src/utils.js";
 import Action from "./src/action/Action.js";
 
 const getAction = () => {
   return new Action(
-    core.getInput("aws_access_key_id"),
-    core.getInput("aws_secret_access_key"),
-    core.getInput("aws_region"),
-    core.getInput("secret_name"),
-    core.getInput("json_file_path"),
-    core.getInput("exclude"),
-    core.getBooleanInput("show_values"),
-    core.getBooleanInput("create_secret"),
+    getInput("aws_access_key_id"),
+    getInput("aws_secret_access_key"),
+    getInput("aws_region"),
+    getInput("secret_name"),
+    getInput("json_file_path"),
+    getInput("exclude"),
+    getBooleanInput("show_values", false),
+    getBooleanInput("create_secret", false),
   );
 };
 
 const run = async () => {
   try {
-    setDefault("dry_run", "false");
-    setDefault("show_values", "false");
-    setDefault("create_secret", "false");
-
-    const dryRun = core.getBooleanInput("dry_run");
+    const dryRun = getBooleanInput("dry_run", false);
 
     const changeSet = await getAction().run();
 
@@ -36,13 +32,5 @@ const run = async () => {
     core.setFailed(error.message);
   }
 };
-
-const setDefault = (name, value) => {
-  const envVarName = `INPUT_${name.replace(/ /g, '_').toUpperCase()}`;
-  const val = process.env[envVarName] || '';
-  if (val === '') {
-    process.env[envVarName] = value;
-  }
-}
 
 run();

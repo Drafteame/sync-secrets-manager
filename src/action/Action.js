@@ -1,4 +1,5 @@
 import fs from "fs";
+import core from "@actions/core";
 
 import SecretsManager from "../secrets-manager/SecretsManager.js";
 import ChangeSet from "./ChangeSet.js";
@@ -119,6 +120,7 @@ export default class Action {
    */
   async #createSecret() {
     if (!this.#createSecretFlag) {
+      core.info("secret creation skip...");
       return;
     }
 

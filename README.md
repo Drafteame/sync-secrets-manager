@@ -33,5 +33,5 @@ jobs:
           create_secret: false # If true it will check if the secret exists or not to create it before execute sync (default false)
           dry_run: true # Default false
           show_values: false # If true secret values will be displayed on action logs (default false)
-          exclude: '^_' # Regular expression that excludes the matching keys to be synced (default '^_')
+          exclude: "^_" # Regular expression that excludes the matching keys to be synced (default '^_')
 ```
