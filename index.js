@@ -1,3 +1,5 @@
+import core from "@actions/core";
+
 import { getInput, getBooleanInput } from "./src/utils.js";
 import Action from "./src/action/Action.js";
 
