@@ -1,6 +1,6 @@
 {
   "name": "sync-secrets-manager",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "type": "module",
   "description": "Github action that sync an AWS Secrets Manager and it's values from a provided json file",
   "main": "index.js",
