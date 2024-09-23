@@ -42,6 +42,11 @@ export default class Action {
   #createSecretFlag;
 
   /**
+   * Flag that marks the specified secret to be deleted
+   */
+  #deleteSecretFlag;
+
+  /**
    * Creates a new Action instance.
    *
    * @param {string} keyId The AWS access key ID.
@@ -49,11 +54,12 @@ export default class Action {
    * @param {string} region The AWS region.
    * @param {string} secretName The name of the secret in AWS Secrets Manager.
    * @param {string} jsonFile The path to the JSON file containing the new secret values.
-   * @param {string} skipPattern A regular expression that eval keys of the json file and if match,
+   * @param {string} skipPattern A regular expression that eval keys of the json file and if matched,
    *        that key should be omitted
    * @param {boolean} showValues If this flag is set to true all secret values will be displayed on logs,
-   *        if false, a place holder will be displayed.
-   * @param {boolean} createSecretFlag Flag to create the secret before sync if not exists
+   *        if false, a placeholder will be displayed.
+   * @param {boolean} createSecret Flag to create the secret before sync if not exists
+   * @param {boolean} deleteSecret Flag that marks the specified secret to be deleted.
    *
    * @throws {Error} Throws an error if any required parameter is missing or if the JSON file doesn't exist.
    */
@@ -66,13 +72,22 @@ export default class Action {
     skipPattern,
     showValues = false,
     createSecret = false,
+    deleteSecret = false,
   ) {
-    this.#validateData(keyId, secretKey, region, secretName, jsonFile);
+    this.#validateData(
+      keyId,
+      secretKey,
+      region,
+      secretName,
+      jsonFile,
+      deleteSecret,
+    );
 
     this.#jsonFile = jsonFile;
     this.#skipPattern = skipPattern || defaultSkipPattern;
     this.#showValues = showValues;
     this.#createSecretFlag = createSecret;
+    this.#deleteSecretFlag = deleteSecret;
 
     this.#smClient = new SecretsManager(keyId, secretKey, region, secretName);
   }
@@ -96,6 +111,15 @@ export default class Action {
   }
 
   /**
+   * Set the deleteSecretFlag after constructor.
+   *
+   * @param {boolean} flag - Value of the flag
+   */
+  setDeleteSecretFlag(flag) {
+    this.#deleteSecretFlag = flag;
+  }
+
+  /**
    * Runs the action to synchronize secrets by fetching existing secrets and creating a change set.
    *
    * @returns {Promise<ChangeSet>} A promise that resolves to a ChangeSet instance representing the changes to be applied.
@@ -103,8 +127,13 @@ export default class Action {
   async run() {
     await this.#createSecret();
 
-    const existingSecretData = await this.#smClient.getValues();
-    const newSecretData = JSON.parse(fs.readFileSync(this.#jsonFile, "utf8"));
+    let existingSecretData = {};
+    let newSecretData = {};
+
+    if (!this.#deleteSecretFlag) {
+      existingSecretData = await this.#smClient.getValues();
+      newSecretData = JSON.parse(fs.readFileSync(this.#jsonFile, "utf8"));
+    }
 
     return new ChangeSet(
       this.#smClient,
@@ -112,6 +141,7 @@ export default class Action {
       existingSecretData,
       this.#skipPattern,
       this.#showValues,
+      this.#deleteSecretFlag,
     );
   }
 
@@ -119,7 +149,7 @@ export default class Action {
    * Execute secret creation if needed
    */
   async #createSecret() {
-    if (!this.#createSecretFlag) {
+    if (this.#deleteSecretFlag || !this.#createSecretFlag) {
       core.info("secret creation skip...");
       return;
     }
@@ -139,10 +169,11 @@ export default class Action {
    * @param {string} region - The AWS region.
    * @param {string} secretName - The name of the secret in AWS Secrets Manager.
    * @param {string} jsonFile - The path to the JSON file containing the new secret values.
+   * @param {boolean} deleteSecret - Flag to validate if the secret should be deleted.
    *
    * @throws {Error} Throws an error if any required parameter is missing or if the JSON file doesn't exist.
    */
-  #validateData(keyId, secretKey, region, secretName, jsonFile) {
+  #validateData(keyId, secretKey, region, secretName, jsonFile, deleteSecret) {
     if (!keyId) {
       throw new Error("Missing aws_access_key_id");
     }
@@ -159,13 +190,15 @@ export default class Action {
       throw new Error("Missing secret_name");
     }
 
-    if (!jsonFile) {
-      throw new Error("Missing json_file_path");
-    }
+    if (!deleteSecret) {
+      if (!jsonFile) {
+        throw new Error("Missing json_file_path");
+      }
 
-    // Check if the JSON file exists
-    if (!fs.existsSync(jsonFile)) {
-      throw new Error(`JSON file does not exist at path: ${jsonFile}`);
+      // Check if the JSON file exists
+      if (!fs.existsSync(jsonFile)) {
+        throw new Error(`JSON file does not exist at path: ${jsonFile}`);
+      }
     }
   }
 }

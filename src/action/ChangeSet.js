@@ -40,10 +40,16 @@ export default class ChangeSet {
   #skipPattern;
 
   /**
-   * A flag to unhide secret values on log messages
+   * A flag to un-hide secret values on log messages
    * @type {boolean}
    */
   #showValues;
+
+  /**
+   * A flag to delete the secret
+   * @type {boolean}
+   */
+  #deleteAction;
 
   /**
    * Creates a new ChangeSet instance.
@@ -52,7 +58,8 @@ export default class ChangeSet {
    * @param {Object} newValues The new set of values to be applied to the secrets manager.
    * @param {Object} existingValues The existing set of values to be replaced by the new ones.
    * @param {string} skipPattern A regular expression to skip keys.
-   * @param {boolean} showValues A flag to unhide secret values on log messages
+   * @param {boolean} showValues A flag to un-hide secret values on log messages
+   * @param {boolean} deleteAction A flag to delete the secret
    */
   constructor(
     smClient,
@@ -60,12 +67,14 @@ export default class ChangeSet {
     existingValues,
     skipPattern,
     showValues = false,
+    deleteAction = false,
   ) {
     this.#changeDesc = [];
     this.#updatedValues = { ...existingValues };
     this.#smClient = smClient;
     this.#skipPattern = skipPattern || "";
     this.#showValues = showValues;
+    this.#deleteAction = deleteAction;
 
     this.#eval(newValues, existingValues);
   }
@@ -85,6 +94,11 @@ export default class ChangeSet {
    * @returns {Promise} A promise that resolves when the update is completed.
    */
   async apply() {
+    if (this.#deleteAction) {
+      await this.#smClient.delete();
+      return;
+    }
+
     await this.#smClient.update(this.#updatedValues);
   }
 
@@ -95,6 +109,11 @@ export default class ChangeSet {
    * @param {Object} existingValues - The existing set of values to be replaced by the new ones.
    */
   #eval(newValues, existingValues) {
+    if (this.#deleteAction) {
+      this.#removedDesc("ALL_KEYS");
+      return;
+    }
+
     // Check for changes and update the secret (or preview changes)
     for (const key in newValues) {
       if (this.#shouldSkip(key)) {
@@ -141,11 +160,7 @@ export default class ChangeSet {
 
     let exp = new RegExp(this.#skipPattern);
 
-    if (exp.test(key)) {
-      return true;
-    }
-
-    return false;
+    return exp.test(key);
   }
 
   /**
