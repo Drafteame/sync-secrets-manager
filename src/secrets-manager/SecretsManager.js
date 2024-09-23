@@ -4,6 +4,7 @@ import {
   UpdateSecretCommand,
   CreateSecretCommand,
   ListSecretsCommand,
+  DeleteSecretCommand,
 } from "@aws-sdk/client-secrets-manager";
 
 import lodash from "lodash";
@@ -39,7 +40,7 @@ export default class SecretsManager {
   }
 
   /**
-   * Take a new set of values an replace the current values for the configured secrets manager.
+   * Take a new set of values as replacement the current values for the configured secrets manager.
    *
    * @param {Object} newValues Object with new values to replace existing ones on secrets manager
    */
@@ -74,7 +75,7 @@ export default class SecretsManager {
 
     const res = await this.client.send(listCommand);
 
-    if (res.SecretList.length == 0) {
+    if (res.SecretList.length === 0) {
       return false;
     }
 
@@ -99,5 +100,17 @@ export default class SecretsManager {
     });
 
     await this.client.send(createCommand);
+  }
+
+  /**
+   * Delete the given secret name
+   */
+  async delete() {
+    const deleteCommand = new DeleteSecretCommand({
+      SecretId: this.secretName,
+      RecoveryWindowInDays: 7,
+    });
+
+    await this.client.send(deleteCommand);
   }
 }

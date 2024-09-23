@@ -33,6 +33,9 @@ inputs:
   exclude:
     description: "List of regular expressions that determines if a secret key should be excluded from sync"
     required: false
+  delete_secret:
+    description: "Flag that marks the specified secret to be deleted"
+    required: false
 
 runs:
   using: "docker"

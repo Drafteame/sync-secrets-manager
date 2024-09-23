@@ -13,6 +13,7 @@ const getAction = () => {
     getInput("exclude"),
     getBooleanInput("show_values", false),
     getBooleanInput("create_secret", false),
+    getBooleanInput("delete_secret", false),
   );
 };
 

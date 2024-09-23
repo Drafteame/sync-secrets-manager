@@ -188,4 +188,40 @@ describe("SecretsManager", () => {
       }
     });
   });
+
+  describe("delete", async () => {
+    it("should delete secret", async () => {
+      const secretName = "my-secret";
+
+      secretsManagerClientStub.resolves({});
+
+      const secretsManager = new SecretsManager(
+        "keyId",
+        "secretKey",
+        "region",
+        secretName,
+      );
+
+      await secretsManager.delete();
+    });
+
+    it("should handle errors when deleting secret", async () => {
+      const secretName = "my-secret";
+
+      secretsManagerClientStub.rejects(new Error("Failed to delete secret"));
+
+      const secretsManager = new SecretsManager(
+        "keyId",
+        "secretKey",
+        "region",
+        secretName,
+      );
+
+      try {
+        await secretsManager.delete();
+      } catch (error) {
+        expect(error.message).to.equal("Failed to delete secret");
+      }
+    });
+  });
 });

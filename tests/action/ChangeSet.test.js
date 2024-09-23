@@ -1,4 +1,4 @@
-import { expect, should } from "chai";
+import { expect } from "chai";
 import sinon from "sinon";
 
 import ChangeSet from "../../src/action/ChangeSet.js";
@@ -11,146 +11,190 @@ describe("ChangeSet", () => {
     secretsManagerStub = sinon.createStubInstance(SecretsManager);
   });
 
-  it("should create a ChangeSet instance", () => {
-    const newValues = { key1: "new-value1", key2: "new-value2" };
-    const existingValues = { key1: "value1", key2: "value2" };
+  describe("Sync operations", () => {
+    it("should create a ChangeSet instance", () => {
+      const newValues = { key1: "new-value1", key2: "new-value2" };
+      const existingValues = { key1: "value1", key2: "value2" };
 
-    const changeSet = new ChangeSet(
-      secretsManagerStub,
-      newValues,
-      existingValues,
-    );
+      const changeSet = new ChangeSet(
+        secretsManagerStub,
+        newValues,
+        existingValues,
+      );
 
-    expect(changeSet).to.be.an.instanceOf(ChangeSet);
+      expect(changeSet).to.be.an.instanceOf(ChangeSet);
+    });
+
+    it("should return change descriptions when changeDesc is called", () => {
+      const newValues = { key1: "new-value1", key2: "new-value2" };
+      const existingValues = { key1: "value1", key2: "value2" };
+
+      const changeSet = new ChangeSet(
+        secretsManagerStub,
+        newValues,
+        existingValues,
+      );
+
+      const descriptions = changeSet.changeDesc();
+
+      expect(descriptions).to.be.an("array");
+      expect(descriptions).to.have.lengthOf(2); // Two changes: key1 and key2
+    });
+
+    it("should apply changes when apply is called", async () => {
+      const newValues = { key1: "new-value1", key2: "new-value2" };
+      const existingValues = { key1: "value1", key2: "value2" };
+
+      secretsManagerStub.update.resolves({});
+
+      const changeSet = new ChangeSet(
+        secretsManagerStub,
+        newValues,
+        existingValues,
+      );
+
+      await changeSet.apply();
+    });
+
+    it("should create change descriptions for modifications", () => {
+      const newValues = { key1: "new-value1", key2: "new-value2" };
+      const existingValues = { key1: "value1", key2: "value2" };
+
+      const changeSet = new ChangeSet(
+        secretsManagerStub,
+        newValues,
+        existingValues,
+      );
+
+      const descriptions = changeSet.changeDesc();
+
+      expect(descriptions).to.deep.equal([
+        "SecretKey: [CHANGED] 'key1': '**********' => '**********'",
+        "SecretKey: [CHANGED] 'key2': '**********' => '**********'",
+      ]);
+    });
+
+    it("should create change descriptions for removals", () => {
+      const newValues = { key1: "value1" }; // Key2 is removed
+      const existingValues = { key1: "value1", key2: "value2" };
+
+      const changeSet = new ChangeSet(
+        secretsManagerStub,
+        newValues,
+        existingValues,
+      );
+
+      const descriptions = changeSet.changeDesc();
+
+      expect(descriptions).to.deep.equal(["SecretKey: [REMOVED] 'key2'"]);
+    });
+
+    it("should create descriptions for new keys", () => {
+      const newValues = { key1: "value1", key2: "value2", key3: "value3" };
+      const existingValues = { key1: "value1", key2: "value2" };
+
+      const changeSet = new ChangeSet(
+        secretsManagerStub,
+        newValues,
+        existingValues,
+      );
+
+      const descriptions = changeSet.changeDesc();
+
+      expect(descriptions).to.deep.equal([
+        "SecretKey: [ADDED] 'key3': '**********'",
+      ]);
+    });
+
+    it("should exclude keys from patterns", () => {
+      const newValues = {
+        _excluded: "some",
+        key1: "value1",
+        key2: "value2",
+        key3: "value3",
+      };
+      const existingValues = { key1: "value1", key2: "value2" };
+
+      const changeSet = new ChangeSet(
+        secretsManagerStub,
+        newValues,
+        existingValues,
+        ["^_"],
+      );
+
+      const descriptions = changeSet.changeDesc();
+
+      expect(descriptions).to.deep.equal([
+        "SecretKey: [SKIP] '_excluded'",
+        "SecretKey: [ADDED] 'key3': '**********'",
+      ]);
+    });
+
+    it("should show real values on logs", () => {
+      const newValues = {
+        _excluded: "some",
+        key1: "value1",
+        key2: "value2",
+        key3: "value3",
+      };
+      const existingValues = { key1: "value1", key2: "value2" };
+
+      const changeSet = new ChangeSet(
+        secretsManagerStub,
+        newValues,
+        existingValues,
+        ["^_"],
+        true,
+      );
+
+      const descriptions = changeSet.changeDesc();
+
+      expect(descriptions).to.deep.equal([
+        "SecretKey: [SKIP] '_excluded'",
+        "SecretKey: [ADDED] 'key3': 'value3'",
+      ]);
+    });
   });
 
-  it("should return change descriptions when changeDesc is called", () => {
-    const newValues = { key1: "new-value1", key2: "new-value2" };
-    const existingValues = { key1: "value1", key2: "value2" };
+  describe("Delete operation", () => {
+    it("should delete the secret when deleteSecretFlag is set", async () => {
+      const changeSet = new ChangeSet(
+        secretsManagerStub,
+        {},
+        {},
+        ["^_"],
+        false,
+        true,
+      );
 
-    const changeSet = new ChangeSet(
-      secretsManagerStub,
-      newValues,
-      existingValues,
-    );
+      secretsManagerStub.delete.resolves({});
 
-    const descriptions = changeSet.changeDesc();
+      await changeSet.apply();
 
-    expect(descriptions).to.be.an("array");
-    expect(descriptions).to.have.lengthOf(2); // Two changes: key1 and key2
-  });
+      expect(secretsManagerStub.delete.calledOnce).to.be.true;
 
-  it("should apply changes when apply is called", async () => {
-    const newValues = { key1: "new-value1", key2: "new-value2" };
-    const existingValues = { key1: "value1", key2: "value2" };
+      const descriptions = changeSet.changeDesc();
 
-    secretsManagerStub.update.resolves({});
+      expect(descriptions).to.deep.equal(["SecretKey: [REMOVED] 'ALL_KEYS'"]);
+    });
 
-    const changeSet = new ChangeSet(
-      secretsManagerStub,
-      newValues,
-      existingValues,
-    );
+    it("should throw an error when deleting the secret fails", async () => {
+      const changeSet = new ChangeSet(
+        secretsManagerStub,
+        {},
+        {},
+        ["^_"],
+        false,
+        true,
+      );
 
-    await changeSet.apply();
-  });
+      secretsManagerStub.delete.rejects(new Error("Failed to delete secret"));
 
-  it("should create change descriptions for modifications", () => {
-    const newValues = { key1: "new-value1", key2: "new-value2" };
-    const existingValues = { key1: "value1", key2: "value2" };
-
-    const changeSet = new ChangeSet(
-      secretsManagerStub,
-      newValues,
-      existingValues,
-    );
-
-    const descriptions = changeSet.changeDesc();
-
-    expect(descriptions).to.deep.equal([
-      "SecretKey: [CHANGED] 'key1': '**********' => '**********'",
-      "SecretKey: [CHANGED] 'key2': '**********' => '**********'",
-    ]);
-  });
-
-  it("should create change descriptions for removals", () => {
-    const newValues = { key1: "value1" }; // Key2 is removed
-    const existingValues = { key1: "value1", key2: "value2" };
-
-    const changeSet = new ChangeSet(
-      secretsManagerStub,
-      newValues,
-      existingValues,
-    );
-
-    const descriptions = changeSet.changeDesc();
-
-    expect(descriptions).to.deep.equal(["SecretKey: [REMOVED] 'key2'"]);
-  });
-
-  it("should create descriptions for new keys", () => {
-    const newValues = { key1: "value1", key2: "value2", key3: "value3" };
-    const existingValues = { key1: "value1", key2: "value2" };
-
-    const changeSet = new ChangeSet(
-      secretsManagerStub,
-      newValues,
-      existingValues,
-    );
-
-    const descriptions = changeSet.changeDesc();
-
-    expect(descriptions).to.deep.equal([
-      "SecretKey: [ADDED] 'key3': '**********'",
-    ]);
-  });
-
-  it("should exclude keys from patterns", () => {
-    const newValues = {
-      _excluded: "some",
-      key1: "value1",
-      key2: "value2",
-      key3: "value3",
-    };
-    const existingValues = { key1: "value1", key2: "value2" };
-
-    const changeSet = new ChangeSet(
-      secretsManagerStub,
-      newValues,
-      existingValues,
-      ["^_"],
-    );
-
-    const descriptions = changeSet.changeDesc();
-
-    expect(descriptions).to.deep.equal([
-      "SecretKey: [SKIP] '_excluded'",
-      "SecretKey: [ADDED] 'key3': '**********'",
-    ]);
-  });
-
-  it("should show real values on logs", () => {
-    const newValues = {
-      _excluded: "some",
-      key1: "value1",
-      key2: "value2",
-      key3: "value3",
-    };
-    const existingValues = { key1: "value1", key2: "value2" };
-
-    const changeSet = new ChangeSet(
-      secretsManagerStub,
-      newValues,
-      existingValues,
-      ["^_"],
-      true,
-    );
-
-    const descriptions = changeSet.changeDesc();
-
-    expect(descriptions).to.deep.equal([
-      "SecretKey: [SKIP] '_excluded'",
-      "SecretKey: [ADDED] 'key3': 'value3'",
-    ]);
+      try {
+        await changeSet.apply();
+      } catch (error) {
+        expect(error.message).to.equal("Failed to delete secret");
+      }
+    });
   });
 });
